@@ -1,45 +1,62 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Gemini Agent Inspector (v3)</title>
-    <link rel="stylesheet" href="styles.css?v=3.2">
-</head>
-<body>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <link rel="stylesheet" href="styles.css?v=3.3" />
+  </head>
+  <body>
     <div id="sidebar">
-        <div class="header">Timeline</div>
-        <div id="timeline" style="flex:1; overflow-y:auto;"></div>
+      <div class="header">Timeline</div>
+      <div id="timeline" style="flex: 1; overflow-y: auto"></div>
     </div>
     <div id="main">
-        <div class="header">
-            <div style="display:flex; align-items:center">
-                <span>Inspector</span>
-                <!-- Optional: Layout Toggle in future -->
-            </div>
-            <div id="global-tokens" style="font-size:11px; color:#888; font-family:'Consolas',monospace; display:none;">
-                <span title="Total Input">In: <span id="g-input" style="color:#b5cea8;">0</span></span>
-                <span style="margin:0 5px; color:#444;">|</span>
-                <span title="Total Output">Out: <span id="g-output" style="color:#dcdcaa;">0</span></span>
-                <span style="margin:0 5px; color:#444;">|</span>
-                <span title="Total Session Cost">Total: <span id="g-total" style="color:#ce9178;">0</span></span>
-            </div>
-            <div id="status"><span class="status-dot"></span>Disconnected</div>
+      <div class="header">
+        <div style="display: flex; align-items: center">
+          <span>Inspector</span>
+          <!-- Optional: Layout Toggle in future -->
         </div>
-        <div id="workspace">
-            <div id="rich-panel">
-                <div class="rich-container" id="rich-view">Select an event...</div>
-            </div>
-            <div id="json-panel">
-                <!-- JSON Source will be rendered here -->
-                <div style="color:#666; font-style:italic; padding:10px;">Select an event to view source...</div>
-            </div>
+        <div
+          id="global-tokens"
+          style="
+            font-size: 11px;
+            color: #888;
+            font-family: 'Consolas', monospace;
+            display: none;
+          "
+        >
+          <span title="Total Input"
+            >In: <span id="g-input" style="color: #b5cea8">0</span></span
+          >
+          <span style="margin: 0 5px; color: #444">|</span>
+          <span title="Total Output"
+            >Out: <span id="g-output" style="color: #dcdcaa">0</span></span
+          >
+          <span style="margin: 0 5px; color: #444">|</span>
+          <span title="Total Session Cost"
+            >Total: <span id="g-total" style="color: #ce9178">0</span></span
+          >
         </div>
+        <div id="status"><span class="status-dot"></span>Disconnected</div>
+      </div>
+      <div id="workspace">
+        <div id="rich-panel">
+          <div class="rich-container" id="rich-view">Select an event...</div>
+        </div>
+        <div id="json-panel">
+          <!-- JSON Source will be rendered here -->
+          <div style="color: #666; font-style: italic; padding: 10px">
+            Select an event to view source...
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Application Scripts -->
-    <script src="json-viewer.js?v=3.2"></script>
-    <script src="renderer.js?v=3.2"></script>
-    <script src="app.js?v=3.2"></script>
-</body>
+    <script src="json-viewer.js?v=3.3"></script>
+    <script src="renderer.js?v=3.3"></script>
+    <script src="app.js?v=3.3"></script>
+  </body>
 </html>

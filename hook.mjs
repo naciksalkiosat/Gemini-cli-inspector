@@ -26,6 +26,12 @@ const clients = new Set();
 const INSPECTOR_DIR = __dirname; // Modified: Current directory serves static files
 let upstreamOrigin = null; // If set, we are a secondary instance forwarding to this origin
 
+// Request ID generator for correlating requests and responses
+let requestIdCounter = 0;
+function generateRequestId() {
+    return `req_${Date.now()}_${++requestIdCounter}`;
+}
+
 // Helper to serve static files
 const serveFile = (res, filePath, contentType) => {
     fs.readFile(filePath, (err, content) => {
@@ -428,6 +434,7 @@ https.request = function(...args) {
   const originalWrite = req.write;
   const originalEnd = req.end;
   let requestBodyChunks = [];
+  const requestId = generateRequestId(); // Generate unique ID for this request-response pair
 
   req.write = function(chunk, ...writeArgs) {
     if (chunk) requestBodyChunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
@@ -448,7 +455,7 @@ https.request = function(...args) {
             
             if (model && !json.model) json.model = model; // Inject model if missing
 
-            broadcast(type, summary, json, { url, method: (options.method || 'POST').toUpperCase() }); // Use classified type and summary
+            broadcast(type, summary, json, { url, method: (options.method || 'POST').toUpperCase(), requestId }); // Use classified type and summary
         } catch (e) {
             // If JSON parse fails, likely not LLM request, ignore
             // console.warn('Request body is not JSON or parsing failed:', e);
@@ -481,7 +488,7 @@ https.request = function(...args) {
             const fullBuffer = Buffer.concat(chunks);
             const encoding = res.headers['content-encoding'];
             
-            const meta = { url, method: (options.method || 'POST').toUpperCase(), statusCode };
+            const meta = { url, method: (options.method || 'POST').toUpperCase(), statusCode, requestId };
 
             const processJson = (buffer) => {
                const str = buffer.toString('utf8');
