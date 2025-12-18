@@ -1,6 +1,6 @@
 // inspector/hook.mjs
 /**
- * Gemini Agent Inspector Hook (ESM Version)
+ * Gemini CLI Inspector Hook (ESM Version)
  *
  * Usage:
  *   node --import ./inspector/hook.mjs packages/cli/dist/index.js [args]
