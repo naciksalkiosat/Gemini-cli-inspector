@@ -85,10 +85,25 @@ function addLog(log) {
         label = 'META';
     }
 
+    const status = log.statusCode;
+    const statusHtml = status ? `<span style="color:${status >= 200 && status < 300 ? '#4caf50' : '#f44336'}; font-weight:bold; margin-left:5px; font-size:10px;">${status}</span>` : '';
+
     el.innerHTML = `
         <div class="timestamp">${new Date(log.timestamp).toLocaleTimeString()}</div>
-        <div>${flowLabel} <span class="type-badge ${typeClass}">${label}</span> ${log.summary || 'Details'}</div>
+        <div>${flowLabel} <span class="type-badge ${typeClass}">${label}</span> ${log.summary || 'Details'}${statusHtml}</div>
     `;
+
+    // Add URL Preview
+    if (log.url) {
+        try {
+            const urlObj = new URL(log.url);
+            const pathParts = urlObj.pathname.split('/');
+            const shortUrl = pathParts.pop() || pathParts.pop() || urlObj.pathname;
+            el.innerHTML += `<div style="font-size:10px; color:#888; margin-top:2px; margin-left: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${log.url}">${shortUrl}</div>`;
+        } catch (e) {
+            el.innerHTML += `<div style="font-size:10px; color:#888; margin-top:2px; margin-left: 20px;">${log.url}</div>`;
+        }
+    }
 
     // Add Model Name (for requests)
     if (log.data && log.data.model) {

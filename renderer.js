@@ -69,6 +69,26 @@ const Renderer = {
         
         container.innerHTML = '';
 
+        // Prepend Request Metadata (URL, Method, Status) if available
+        if (currentLog.url || currentLog.method) {
+            const urlObj = currentLog.url ? new URL(currentLog.url) : null;
+            const displayUrl = urlObj ? urlObj.pathname + urlObj.search : (currentLog.url || '');
+            const host = urlObj ? urlObj.host : '';
+            const status = currentLog.statusCode;
+            const statusColor = status ? (status >= 200 && status < 300 ? '#4caf50' : '#f44336') : '#888';
+
+            container.innerHTML += `
+                <div style="margin-bottom:20px; padding:12px; background:#2d2d30; border-radius:6px; border:1px solid #444; font-family:'Consolas',monospace;">
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px; flex-wrap:wrap;">
+                        <span style="background:#0e639c; color:white; padding:2px 6px; border-radius:3px; font-size:11px; font-weight:bold;">${currentLog.method || 'POST'}</span>
+                        ${status ? `<span style="background:${statusColor}; color:white; padding:2px 6px; border-radius:3px; font-size:11px; font-weight:bold;">${status}</span>` : ''}
+                        <span style="color:#d4d4d4; font-size:13px; font-weight:bold; word-break:break-all;">${displayUrl}</span>
+                    </div>
+                    ${host ? `<div style="font-size:11px; color:#888;">Host: <span style="color:#ce9178;">${host}</span></div>` : ''}
+                </div>
+            `;
+        }
+
         // Routing Decision (Special)
         if (t === 'model_routing_response') {
             this.renderRoutingResponse(data, container, 'root');
@@ -102,6 +122,16 @@ const Renderer = {
         // Configuration (Special)
         if (t === 'config_response') {
             this.renderConfigResponse(data, container, 'root');
+            return;
+        }
+
+        // Model Usage (Special)
+        if (t === 'model_usage_response') {
+            this.renderModelUsageResponse(data, container, 'root');
+            return;
+        }
+        if (t === 'model_usage_request') {
+            this.renderModelUsageRequest(data, container, 'root');
             return;
         }
 
@@ -384,6 +414,63 @@ const Renderer = {
                             <span style="color:#e74c3c;">●</span> False: <b>${boolFalse}</b>
                         </div>
                         <div style="font-size:11px; color:#666; align-self:center;">(Details hidden)</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    renderModelUsageResponse: function(data, container, basePath) {
+        const payload = data.response || data;
+        const buckets = payload.buckets || [];
+
+        let html = `
+            <div style="padding:15px; background:#2d2d30; border-radius:6px; border-left:4px solid #3498db;" ${this.link(basePath)}>
+                <h3 style="margin-top:0; color:#3498db;">Model Usage Status</h3>
+                <div style="display:grid; grid-template-columns: 1fr; gap:15px;">
+        `;
+
+        buckets.forEach((bucket, index) => {
+            const bucketPath = `${basePath}.buckets.${index}`;
+            const remaining = (bucket.remainingFraction * 100).toFixed(1);
+            const isCritical = bucket.remainingFraction < 0.1;
+            const barColor = isCritical ? '#e74c3c' : (bucket.remainingFraction < 0.4 ? '#f1c40f' : '#2ecc71');
+            
+            const resetDate = bucket.resetTime ? new Date(bucket.resetTime).toLocaleString() : 'N/A';
+
+            html += `
+                <div style="background:#1e1e1e; padding:12px; border-radius:4px; border:1px solid #444;" ${this.link(bucketPath)}>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                        <span style="font-weight:bold; color:#d4d4d4;">${bucket.modelId}</span>
+                        <span style="font-size:11px; color:#888;">${bucket.tokenType}</span>
+                    </div>
+                    <div style="height:8px; background:#333; border-radius:4px; overflow:hidden; margin-bottom:8px;">
+                        <div style="height:100%; width:${remaining}%; background:${barColor}; transition: width 0.3s;"></div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:11px;">
+                        <span style="color:${barColor}; font-weight:bold;">${remaining}% remaining</span>
+                        <span style="color:#666;">Resets: ${resetDate}</span>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += `
+                </div>
+            </div>
+        `;
+        container.innerHTML = html;
+    },
+
+    renderModelUsageRequest: function(data, container, basePath) {
+        const payload = data.request || data;
+        container.innerHTML = `
+            <div style="padding:15px; background:#2d2d30; border-radius:6px; border-left:4px solid #3498db;" ${this.link(basePath)}>
+                <h3 style="margin-top:0; color:#3498db;">Model Usage Request</h3>
+                <div style="margin-bottom:10px;">
+                    <div style="font-size:11px; color:#888; margin-bottom:4px; font-weight:bold;">PROJECT ID</div>
+                    <div style="background:#1e1e1e; padding:8px; border-radius:4px; font-family:'Consolas',monospace; color:#3498db;">
+                        ${payload.project}
                     </div>
                 </div>
             </div>

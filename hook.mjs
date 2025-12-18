@@ -77,9 +77,9 @@ const startServer = (retryPort) => {
         req.on('data', chunk => body += chunk);
         req.on('end', () => {
             try {
-                const { type, summary, data } = JSON.parse(body);
+                const { type, summary, data, ...meta } = JSON.parse(body);
                 // Broadcast locally
-                broadcast(type, summary, data);
+                broadcast(type, summary, data, meta);
                 res.writeHead(200);
                 res.end('OK');
             } catch (e) {
@@ -94,7 +94,7 @@ const startServer = (retryPort) => {
     let filePath = '';
     let contentType = 'text/html';
 
-    // Parse URL to ignore query strings (e.g., ?v=3.1)
+    // Parse URL to ignore query strings (e.g., ?v=3.2)
     const requestUrl = new URL(req.url, `http://${req.headers.host}`);
     const pathname = requestUrl.pathname;
 
@@ -166,10 +166,10 @@ const startServer = (retryPort) => {
 
 startServer(PORT);
 
-function broadcast(type, summary, data) {
+function broadcast(type, summary, data, meta = {}) {
   // If we are secondary, forward to upstream
   if (upstreamOrigin) {
-      const payload = JSON.stringify({ type, summary, data });
+      const payload = JSON.stringify({ type, summary, data, ...meta });
       const req = http.request(`${upstreamOrigin}/broadcast`, {
           method: 'POST',
           headers: {
@@ -188,7 +188,8 @@ function broadcast(type, summary, data) {
     timestamp: Date.now(),
     type, // Added type field
     summary,
-    data
+    data,
+    ...meta
   });
   
   for (const client of clients) {
@@ -258,7 +259,14 @@ function classifyRequest(parsedUrl, jsonBody) {
         return { type, summary, model };
     }
 
-    // 5. IDE Context Injection
+    // 5. Model Usage Request
+    if (jsonBody.project && Object.keys(jsonBody).length === 1) {
+        type = 'model_usage_request';
+        summary = `Model Usage Check (${jsonBody.project})`;
+        return { type, summary, model };
+    }
+
+    // 6. IDE Context Injection
     const hasIdeContext = payload.contents?.some(
         (content) => content.role === 'user' && content.parts?.some(
             (part) => 'text' in part && (part.text.includes("user's editor context") || part.text.includes("summary of changes"))
@@ -352,6 +360,13 @@ function classifyResponse(jsonResponse) {
         return { type, summary };
     }
 
+    // 7. Model Usage Response
+    if (payload.buckets && Array.isArray(payload.buckets)) {
+        type = 'model_usage_response';
+        summary = 'Model Usage Statistics';
+        return { type, summary };
+    }
+
     // 2. Chat Response
     if (payload.candidates?.length > 0) {
         const firstCandidate = payload.candidates[0];
@@ -433,7 +448,7 @@ https.request = function(...args) {
             
             if (model && !json.model) json.model = model; // Inject model if missing
 
-            broadcast(type, summary, json); // Use classified type and summary
+            broadcast(type, summary, json, { url, method: (options.method || 'POST').toUpperCase() }); // Use classified type and summary
         } catch (e) {
             // If JSON parse fails, likely not LLM request, ignore
             // console.warn('Request body is not JSON or parsing failed:', e);
@@ -451,6 +466,7 @@ https.request = function(...args) {
   req.emit = function(event, ...args) {
     if (event === 'response') {
       const res = args[0];
+      const statusCode = res.statusCode;
       
       const chunks = [];
       const originalResEmit = res.emit;
@@ -465,6 +481,8 @@ https.request = function(...args) {
             const fullBuffer = Buffer.concat(chunks);
             const encoding = res.headers['content-encoding'];
             
+            const meta = { url, method: (options.method || 'POST').toUpperCase(), statusCode };
+
             const processJson = (buffer) => {
                const str = buffer.toString('utf8');
                
@@ -472,7 +490,7 @@ https.request = function(...args) {
                try {
                  const json = JSON.parse(str);
                  const { type, summary } = classifyResponse(json);
-                 broadcast(type, summary, json);
+                 broadcast(type, summary, json, meta);
                  return;
                } catch(e) { /* continue */ }
 
@@ -491,7 +509,7 @@ https.request = function(...args) {
                    const json = JSON.parse(fixedStr);
                    const merged = mergeChunks(json);
                    const { type, summary } = classifyResponse(merged.data);
-                   broadcast(type, summary, merged.data);
+                   broadcast(type, summary, merged.data, meta);
                    return;
                } catch(e) { /* continue */ }
 
@@ -511,11 +529,11 @@ https.request = function(...args) {
                if (validChunks.length > 0) {
                    const merged = mergeChunks(validChunks);
                    const { type, summary } = classifyResponse(merged.data);
-                   broadcast(type, summary, merged.data);
+                   broadcast(type, summary, merged.data, meta);
                } else {
                    // If all else fails, log the raw string if it's short enough, or a snippet
                    if (str.length < 5000) {
-                       broadcast('response', 'Raw Text Response', { raw: str });
+                       broadcast('response', 'Raw Text Response', { raw: str }, meta);
                    }
                }
             };

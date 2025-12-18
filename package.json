@@ -1,7 +1,7 @@
 {
-  "name": "gemini-cli-inspector",
-  "version": "0.1.2",
-  "description": "Unofficial Inspector tool for Gemini CLI",
+  "name": "gemini-agent-inspector",
+  "version": "3.2.0",
+  "description": "A visual debugging tool for the Gemini CLI agent",
   "type": "module",
   "bin": {
     "gemini-inspector": "./start.mjs"
